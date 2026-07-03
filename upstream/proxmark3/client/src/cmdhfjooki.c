@@ -533,7 +533,7 @@ static int CmdHF14AJookiSim(const char *Cmd) {
 
     // fast push mode
     g_conn.block_after_ACK = true;
-    uint8_t blockwidth = 4
+    uint8_t blockwidth = 4;
     uint8_t counter = 0;
     uint8_t blockno = 0;
 
