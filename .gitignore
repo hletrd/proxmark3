@@ -8,3 +8,11 @@
 .vscode/
 .idea/
 *.swp
+
+# Card dumps & recovered keys — sensitive, never publish
+dumps/
+*.dump
+hf-mf-*-dump.*
+hf-mf-*-key.*
+*-key.bin
+*.eml
