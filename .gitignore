@@ -1,0 +1,10 @@
+# OMC / tooling state
+.omc/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
