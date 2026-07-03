@@ -13,10 +13,15 @@ upstream on demand.
 ├── docs/                           # research notes
 │   ├── device-notes.md             # the specific device connected to this host
 │   ├── proxmark3-and-derivatives.md# hardware/firmware landscape
-│   └── mifare-tags.md              # MIFARE families + relevant PM3 workflows
+│   ├── mifare-tags.md              # MIFARE families + relevant PM3 workflows
+│   └── workflows.md                # operational playbook + scripts reference
+├── scripts/                        # reusable build/flash/dump/clone/verify helpers
 └── upstream/
     └── proxmark3/                  # git subtree of RfidResearchGroup/proxmark3 (Iceman)
 ```
+
+Card dumps and recovered keys live under `dumps/` and are **gitignored** — they never
+leave the machine.
 
 ### Why a subtree (not a submodule)
 
@@ -51,22 +56,23 @@ Dependencies (Homebrew):
 
 ```sh
 brew install readline coreutils pkgconf openssl@3 gd libusb
-brew install arm-none-eabi-gcc        # ARM cross-compiler for the firmware
+brew install --cask gcc-arm-embedded   # ARM cross-compiler *with newlib* (firmware)
 ```
 
-Build the client + firmware for a **generic / Easy** (non-RDV4) device. We pass the
-platform on the command line to keep the subtree pristine for `git subtree pull`:
+> ⚠️ Do **not** use homebrew-core's `arm-none-eabi-gcc` — it ships without newlib and
+> the firmware build fails on `fatal error: stdint.h`. The `gcc-arm-embedded` cask
+> (official ARM toolchain) includes newlib. See [`docs/workflows.md`](docs/workflows.md).
+
+Then build (or just run `scripts/build.sh`, which finds the toolchain automatically):
 
 ```sh
-cd upstream/proxmark3
-export PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
-make clean && make -j"$(sysctl -n hw.ncpu)" PLATFORM=PM3GENERIC SKIPQT=1
+scripts/build.sh                       # PLATFORM=PM3GENERIC, SKIPQT=1
 ```
 
 - `PLATFORM=PM3GENERIC` — correct target for a Proxmark3 Easy / generic clone.
-  (Default is `PM3RDV4`. Other values: `PM3ICOPYX`, `PM3ULTIMATE`.)
-- `SKIPQT=1` — skip the optional Qt GUI plot window; the CLI is all that's needed
-  for flashing and normal use.
+  (Default is `PM3RDV4`. Other values: `PM3ICOPYX`, `PM3ULTIMATE`.) Passed on the
+  command line to keep the subtree pristine for `git subtree pull`.
+- `SKIPQT=1` — skip the optional Qt GUI plot window; the CLI is all that's needed.
 
 The MCU flash size (256KB vs 512KB) is auto-detected at flash time.
 
@@ -76,8 +82,7 @@ Put the device in bootloader mode is usually automatic; if auto-detect fails, us
 **button trick**: unplug, hold the button, plug in, release — two LEDs stay lit.
 
 ```sh
-cd upstream/proxmark3
-./pm3-flash-all           # flashes bootrom.elf + fullimage.elf, auto-detects the port
+scripts/flash.sh          # flashes bootrom.elf + fullimage.elf, auto-detects the port
 ```
 
 If the client and firmware come from different source versions the flasher stops with
@@ -95,8 +100,20 @@ cd upstream/proxmark3
 Handy first commands: `hw version`, `hw status`, `hw tune` (antenna health),
 `hf search`, `lf search`.
 
+## Dump & clone MIFARE Classic (quickstart)
+
+```sh
+scripts/mfc-dump.sh mycard                       # recover keys + dump -> dumps/mycard.dump
+scripts/mfc-clone.sh ~/hf-mf-<UID>-dump.bin      # write to a magic card + verify
+scripts/mfc-verify.sh ~/hf-mf-<UID>-dump.bin     # compare a card to a reference dump
+scripts/mfc-clone-watch.sh ~/hf-mf-<UID>-dump.bin  # hands-free batch: just swap cards
+```
+
+Full playbook (attack families, magic-card types, gotchas): [`docs/workflows.md`](docs/workflows.md).
+
 ## Research notes
 
+- [`docs/workflows.md`](docs/workflows.md) — operational playbook + scripts reference
 - [`docs/device-notes.md`](docs/device-notes.md) — the connected device
 - [`docs/proxmark3-and-derivatives.md`](docs/proxmark3-and-derivatives.md) — hardware & firmware landscape
 - [`docs/mifare-tags.md`](docs/mifare-tags.md) — MIFARE tag families & PM3 workflows
